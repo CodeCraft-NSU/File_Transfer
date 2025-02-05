@@ -61,3 +61,23 @@ async def api_pull_db(payload: ccp_payload):
             return JSONResponse(status_code=404, content={"message": "No matching files found for given pid"})
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error copying files: {e}"})
+
+@router.post("/ccp/push_db")
+async def api_push_db(pid: int = Form(...), file: UploadFile = File(...)):
+    """업로드된 CSV 파일을 /Data/MySQL/csv 디렉터리에 저장하는 엔드포인트."""
+    destination = "/Data/MySQL/csv"
+    try:
+        os.makedirs(destination, exist_ok=True)
+    except Exception as e:
+        logging.error(f"Failed to create destination directory '{destination}': {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create destination directory")
+    file_path = os.path.join(destination, file.filename)
+    try:
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        logging.info(f"File '{file.filename}' saved to '{file_path}' for pid {pid}")
+        return JSONResponse(status_code=200, content={"message": "File uploaded successfully", "filename": file.filename})
+    except Exception as e:
+        logging.error(f"Error saving file '{file.filename}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error saving file: {str(e)}")
