@@ -11,8 +11,14 @@ class ccp_payload(BaseModel):
     pid: int
 
 def clean_db_folder(pid, dir):
+    """ 특정 pid가 포함된 CSV 파일을 삭제하는 함수 """
+    if not os.path.exists(dir):
+        logging.error(f"Error: Directory '{dir}' not found.")
+        return False
     try: files = os.listdir(dir)
-    except FileNotFoundError: print(f"Error: Directory '{dir}' not found."); return False
+    except FileNotFoundError:
+        logging.error(f"Error: Directory '{dir}' not found.")
+        return False
     deleted_files = []
     for file in files:
         file_path = os.path.join(dir, file)
@@ -20,13 +26,27 @@ def clean_db_folder(pid, dir):
             try:
                 os.remove(file_path)
                 deleted_files.append(file_path)
-            except Exception as e: print(f"Error deleting {file_path}: {e}")
+            except Exception as e:
+                logging.error(f"Error deleting {file_path}: {e}")
+    if not deleted_files:
+        logging.info(f"No matching files found for pid '{pid}' in directory '{dir}'.")
+        return False
+    logging.info(f"Deleted files: {deleted_files}")
+    return True
+
+@router.post("/ccp/clean_db")
+async def api_clean_db_folder(payload: ccp_payload):
+    """DB 폴더 정리 함수"""
+    source = "/Data/MySQL/csv"
+    if not clean_db_folder(payload.pid, source):
+        return JSONResponse(status_code=400, content={"message": "Directory not found or no matching files"})
+    return JSONResponse(status_code=200, content={"message": "CSV files cleaned successfully."})
 
 @router.post("/ccp/pull_db")
 async def api_pull_db(payload: ccp_payload):
     """/Data/MySQL/csv에서 /Data/API/Database_Files로 특정 pid 포함된 파일만 복사"""
     source = "/Data/MySQL/csv"
-    dest = "/Data/API/Database_Files"
+    dest = f"/Data/API/ccp/{payload.pid}/DATABASE"
     try:
         os.makedirs(dest, exist_ok=True)
         files = os.listdir(source)
@@ -36,8 +56,6 @@ async def api_pull_db(payload: ccp_payload):
                 shutil.copy2(os.path.join(source, file), os.path.join(dest, file))
                 copied_files.append(file)
         if copied_files:
-            if not clean_db_folder(payload.pid, source):
-                return JSONResponse(status_code=400, content={"message": "Directory not found or no matching files"})
             return JSONResponse(status_code=200, content={"message": "Files copied successfully", "copied_files": copied_files})
         else:
             return JSONResponse(status_code=404, content={"message": "No matching files found for given pid"})
