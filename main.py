@@ -31,6 +31,6 @@ async def validation_exception_handler(request, exc):
 
 @app.get("/")
 async def root():
-    return {"message": "root of PMS Storage Server API."}
+    return {"message": "root of File Transfer Server API."}
 
 app.include_router(ccp_router, prefix="/api")
