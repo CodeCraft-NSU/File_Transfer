@@ -37,15 +37,15 @@ def clean_db_folder(pid, dir):
 @router.post("/ccp/clean_db")
 async def api_clean_db_folder(payload: ccp_payload):
     """DB 폴더 정리 함수"""
-    source = "/Data/MySQL/csv"
+    source = "/var/lib/mysql/csv"
     if not clean_db_folder(payload.pid, source):
         return JSONResponse(status_code=400, content={"message": "Directory not found or no matching files"})
     return JSONResponse(status_code=200, content={"message": "CSV files cleaned successfully."})
 
 @router.post("/ccp/pull_db")
 async def api_pull_db(payload: ccp_payload):
-    """/Data/MySQL/csv에서 /Data/API/Database_Files로 특정 pid 포함된 파일만 복사"""
-    source = "/Data/MySQL/csv"
+    """/var/lib/mysql/csv에서 /Data/API/Database_Files로 특정 pid 포함된 파일만 복사"""
+    source = "/var/lib/mysql/csv"
     dest = f"/Data/API/ccp/{payload.pid}/DATABASE"
     try:
         os.makedirs(dest, exist_ok=True)
@@ -64,8 +64,8 @@ async def api_pull_db(payload: ccp_payload):
 
 @router.post("/ccp/push_db")
 async def api_push_db(pid: int = Form(...), file: UploadFile = File(...)):
-    """업로드된 CSV 파일을 /Data/MySQL/csv 디렉터리에 저장하는 엔드포인트."""
-    destination = "/Data/MySQL/csv"
+    """업로드된 CSV 파일을 /var/lib/mysql/csv 디렉터리에 저장하는 엔드포인트."""
+    destination = "/var/lib/mysql/csv"
     try:
         os.makedirs(destination, exist_ok=True)
     except Exception as e:
